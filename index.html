@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>二维码转换器</title>
+    <!-- QRCode.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js">
+    </script>
+    <style>
+        /* ===== CSS Variables ===== */
+        :root {
+            --bg-body: #F8F9FA;
+            --bg-card: #FFFFFF;
+            --bg-nav: rgba(255, 255, 255, 0.92);
+            --bg-input: #FFFFFF;
+            --text-primary: #2D3748;
+            --text-secondary: #718096;
+            --text-light: #A0AEC0;
+            --border-color: #E2E8F0;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.10);
+            --radius: 16px;
+            --radius-sm: 10px;
+            --primary: #4A90D9;
+            --primary-hover: #357ABD;
+            --primary-light: #EBF2FB;
+            --transition: 0.25s ease;
+            --nav-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+            --qr-bg: #FFFFFF;
+            --qr-dark: #1A202C;
+            --modal-overlay: rgba(0, 0, 0, 0.35);
+            --footer-text: #A0AEC0;
+        }
+
+        /* ===== Dark Mode ===== */
+        body.dark-mode {
+            --bg-body: #121826;
+            --bg-card: #1E2638;
+            --bg-nav: rgba(18, 24, 38, 0.94);
+            --bg-input: #2D3748;
+            --text-primary: #E2E8F0;
+            --text-secondary: #A0AEC0;
+            --text-light: #718096;
+            --border-color: #3D4A5C;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.30);
+            --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.40);
+            --primary: #5B8DEF;
+            --primary-hover: #4A7BD9;
+            --primary-light: #2D3748;
+            --nav-shadow: 0 1px 3px rgba(0, 0, 0, 0.30);
+            --qr-bg: #2D3748;
+            --qr-dark: #E2E8F0;
+            --modal-overlay: rgba(0, 0, 0, 0.60);
+            --footer-text: #718096;
+        }
+
+        /* ===== Reset & Base ===== */
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg-body);
+            color: var(--text-primary);
+            line-height: 1.6;
+            transition: background var(--transition), color var(--transition);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        button {
+            cursor: pointer;
+            font-family: inherit;
+            font-size: inherit;
+            border: none;
+            background: none;
+            color: inherit;
+        }
+
+        input {
+            font-family: inherit;
+            font-size: inherit;
+            color: inherit;
+            border: none;
+            outline: none;
+            background: none;
+        }
+
+        /* ===== Scrollbar ===== */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-body);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-light);
+        }
+
+        /* ===== Container ===== */
+        .container {
+            max-width: 820px;
+            margin: 0 auto;
+            padding: 0 24px;
+            width: 100%;
+        }
+
+        /* ===== Navigation ===== */
+        .navbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--bg-nav);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--nav-shadow);
+            transition: background var(--transition), border-color var(--transition), box-shadow var(--transition);
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0;
+        }
+
+        .nav-brand {
+            font-weight: 700;
+            font-size: 1.15rem;
+            color: var(--primary);
+            letter-spacing: -0.3px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        .nav-brand svg {
+            width: 28px;
+            height: 28px;
+            fill: var(--primary);
+            flex-shrink: 0;
+        }
+
+        .nav-menu {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            list-style: none;
+        }
+
+        .nav-menu li {
+            position: relative;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 8px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: color var(--transition), background var(--transition);
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .nav-link:hover {
+            color: var(--text-primary);
+            background: var(--primary-light);
+        }
+        .nav-link.active {
+            color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        /* Settings Dropdown */
+        .settings-dropdown {
+            position: relative;
+        }
+        .settings-dropdown .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .settings-dropdown .nav-link .arrow {
+            font-size: 0.6rem;
+            transition: transform var(--transition);
+            display: inline-block;
+        }
+        .settings-dropdown.open .nav-link .arrow {
+            transform: rotate(180deg);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            min-width: 190px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-hover);
+            padding: 6px 0;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-6px) scale(0.97);
+            transition: opacity var(--transition), transform var(--transition), visibility var(--transition);
+            transform-origin: top right;
+            z-index: 200;
+        }
+        .settings-dropdown.open .dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0) scale(1);
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 18px;
+            font-size: 0.88rem;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: background var(--transition);
+            gap: 16px;
+            white-space: nowrap;
+        }
+        .dropdown-item:hover {
+            background: var(--primary-light);
+        }
+        .dropdown-item .label {
+            font-weight: 450;
+        }
+        .dropdown-item .badge {
+            font-size: 0.75rem;
+            padding: 2px 10px;
+            border-radius: 20px;
+            background: var(--primary-light);
+            color: var(--primary);
+            font-weight: 500;
+            transition: background var(--transition), color var(--transition);
+        }
+        .dropdown-item .toggle-track {
+            width: 40px;
+            height: 22px;
+            border-radius: 12px;
+            background: var(--border-color);
+            position: relative;
+            transition: background var(--transition);
+            flex-shrink: 0;
+        }
+        .dropdown-item .toggle-track .toggle-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #FFFFFF;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform var(--transition), background var(--transition);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+        }
+        .dropdown-item .toggle-track.active {
+            background: var(--primary);
+        }
+        .dropdown-item .toggle-track.active .toggle-thumb {
+            transform: translateX(18px);
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: var(--border-color);
+            margin: 4px 12px;
+            transition: background var(--transition);
+        }
+
+        /* ===== Main Content ===== */
+        .main {
+            flex: 1;
+            padding: 48px 0 60px;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .hero h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            line-height: 1.2;
+            color: var(--text-primary);
+            transition: color var(--transition);
+        }
+        .hero h1 .highlight {
+            color: var(--primary);
+        }
+        .hero p {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-top: 10px;
+            max-width: 480px;
+            margin-left: auto;
+            margin-right: auto;
+            transition: color var(--transition);
+        }
+
+        /* ===== QR Generator Card ===== */
+        .generator-card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 40px 40px 36px;
+            transition: background var(--transition), box-shadow var(--transition), border-color var(--transition);
+            border: 1px solid var(--border-color);
+        }
+
+        .input-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 28px;
+        }
+        .input-row .input-wrap {
+            flex: 1;
+            position: relative;
+        }
+        .input-row .input-wrap input {
+            width: 100%;
+            padding: 14px 18px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--border-color);
+            background: var(--bg-input);
+            color: var(--text-primary);
+            transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+            font-size: 0.95rem;
+            height: 52px;
+        }
+        .input-row .input-wrap input::placeholder {
+            color: var(--text-light);
+        }
+        .input-row .input-wrap input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.15);
+        }
+        body.dark-mode .input-row .input-wrap input:focus {
+            box-shadow: 0 0 0 3px rgba(91, 141, 239, 0.20);
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 0 28px;
+            height: 52px;
+            border-radius: var(--radius-sm);
+            background: var(--primary);
+            color: #FFFFFF;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+            white-space: nowrap;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(74, 144, 217, 0.25);
+        }
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(74, 144, 217, 0.30);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        body.dark-mode .btn-primary {
+            box-shadow: 0 2px 8px rgba(91, 141, 239, 0.25);
+        }
+        body.dark-mode .btn-primary:hover {
+            box-shadow: 0 4px 16px rgba(91, 141, 239, 0.35);
+        }
+
+        .btn-secondary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 0 24px;
+            height: 48px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--border-color);
+            background: transparent;
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: background var(--transition), border-color var(--transition), color var(--transition);
+            white-space: nowrap;
+        }
+        .btn-secondary:hover {
+            background: var(--primary-light);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* ===== QR Output ===== */
+        .qr-output {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+            transition: border-color var(--transition);
+            min-height: 120px;
+        }
+
+        .qr-output .placeholder {
+            color: var(--text-light);
+            font-size: 0.95rem;
+            padding: 24px 0 8px;
+            text-align: center;
+        }
+        .qr-output .placeholder svg {
+            display: block;
+            margin: 0 auto 12px;
+            opacity: 0.3;
+            width: 56px;
+            height: 56px;
+            fill: var(--text-light);
+        }
+
+        #qrcode-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 8px;
+            background: var(--qr-bg);
+            border-radius: var(--radius-sm);
+            transition: background var(--transition);
+            min-height: 200px;
+            min-width: 200px;
+        }
+        #qrcode-container canvas {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+        }
+
+        .qr-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn-download {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 26px;
+            height: 48px;
+            border-radius: var(--radius-sm);
+            background: var(--primary);
+            color: #FFFFFF;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+            box-shadow: 0 2px 8px rgba(74, 144, 217, 0.20);
+        }
+        .btn-download:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(74, 144, 217, 0.30);
+        }
+        .btn-download:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .btn-download:disabled:hover {
+            background: var(--primary);
+            transform: none;
+            box-shadow: 0 2px 8px rgba(74, 144, 217, 0.20);
+        }
+
+        .btn-reset {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0 20px;
+            height: 48px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--border-color);
+            background: transparent;
+            color: var(--text-secondary);
+            font-weight: 450;
+            font-size: 0.9rem;
+            transition: background var(--transition), border-color var(--transition), color var(--transition);
+        }
+        .btn-reset:hover {
+            background: var(--primary-light);
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        /* ===== Modal ===== */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--modal-overlay);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            padding: 24px;
+        }
+        .modal-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-box {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-hover);
+            max-width: 480px;
+            width: 100%;
+            padding: 36px 40px 32px;
+            transform: scale(0.94) translateY(12px);
+            transition: transform 0.3s ease, background var(--transition), box-shadow var(--transition);
+            border: 1px solid var(--border-color);
+            position: relative;
+        }
+        .modal-overlay.open .modal-box {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-box .close-btn {
+            position: absolute;
+            top: 14px;
+            right: 18px;
+            font-size: 1.4rem;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: color var(--transition);
+            line-height: 1;
+            background: none;
+            border: none;
+        }
+        .modal-box .close-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .modal-box h2 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+            transition: color var(--transition);
+        }
+        .modal-box h2 .highlight {
+            color: var(--primary);
+        }
+        .modal-box p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.7;
+            transition: color var(--transition);
+        }
+        .modal-box .modal-meta {
+            margin-top: 18px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.85rem;
+            color: var(--text-light);
+            transition: border-color var(--transition), color var(--transition);
+        }
+
+        /* ===== Footer ===== */
+        .footer {
+            padding: 28px 0 30px;
+            text-align: center;
+            border-top: 1px solid var(--border-color);
+            margin-top: auto;
+            transition: border-color var(--transition);
+            background: var(--bg-body);
+        }
+        .footer p {
+            color: var(--footer-text);
+            font-size: 0.85rem;
+            transition: color var(--transition);
+            letter-spacing: 0.3px;
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 0 16px;
+                height: 58px;
+            }
+            .nav-brand {
+                font-size: 1rem;
+            }
+            .nav-brand svg {
+                width: 24px;
+                height: 24px;
+            }
+            .nav-link {
+                padding: 6px 10px;
+                font-size: 0.82rem;
+            }
+            .dropdown-menu {
+                min-width: 170px;
+                right: -8px;
+            }
+            .dropdown-item {
+                padding: 8px 14px;
+                font-size: 0.82rem;
+            }
+            .dropdown-item .toggle-track {
+                width: 36px;
+                height: 20px;
+            }
+            .dropdown-item .toggle-track .toggle-thumb {
+                width: 16px;
+                height: 16px;
+                top: 2px;
+                left: 2px;
+            }
+            .dropdown-item .toggle-track.active .toggle-thumb {
+                transform: translateX(16px);
+            }
+
+            .main {
+                padding: 32px 0 40px;
+            }
+            .hero h1 {
+                font-size: 2rem;
+            }
+            .hero p {
+                font-size: 0.95rem;
+            }
+            .generator-card {
+                padding: 24px 20px 24px;
+            }
+            .input-row {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .input-row .input-wrap input {
+                height: 48px;
+                font-size: 0.9rem;
+                padding: 12px 16px;
+            }
+            .btn-primary {
+                height: 48px;
+                padding: 0 20px;
+                font-size: 0.9rem;
+                width: 100%;
+                justify-content: center;
+            }
+            .qr-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .qr-actions .btn-download,
+            .qr-actions .btn-reset {
+                width: 100%;
+                justify-content: center;
+                height: 46px;
+            }
+            #qrcode-container {
+                min-height: 160px;
+                min-width: 160px;
+            }
+            #qrcode-container canvas {
+                max-width: 180px;
+                max-height: 180px;
+            }
+
+            .modal-box {
+                padding: 28px 24px 24px;
+                margin: 16px;
+            }
+            .modal-box h2 {
+                font-size: 1.2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .navbar {
+                padding: 0 12px;
+                height: 52px;
+            }
+            .nav-brand {
+                font-size: 0.9rem;
+            }
+            .nav-brand svg {
+                width: 20px;
+                height: 20px;
+            }
+            .nav-link {
+                padding: 5px 8px;
+                font-size: 0.75rem;
+            }
+            .dropdown-menu {
+                min-width: 150px;
+                right: -12px;
+            }
+            .dropdown-item {
+                padding: 6px 12px;
+                font-size: 0.78rem;
+            }
+            .hero h1 {
+                font-size: 1.6rem;
+            }
+            .hero p {
+                font-size: 0.88rem;
+            }
+            .generator-card {
+                padding: 18px 14px 20px;
+            }
+            .input-row .input-wrap input {
+                height: 44px;
+                font-size: 0.85rem;
+                padding: 10px 14px;
+            }
+            .btn-primary {
+                height: 44px;
+                font-size: 0.85rem;
+            }
+            #qrcode-container canvas {
+                max-width: 150px;
+                max-height: 150px;
+            }
+            .footer p {
+                font-size: 0.75rem;
+            }
+        }
+
+        /* ===== Utilities ===== */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .mt-8 {
+            margin-top: 8px;
+        }
+        .text-center {
+            text-align: center;
+        }
+
+        /* ===== Animation ===== */
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .generator-card {
+            animation: fadeUp 0.5s ease both;
+        }
+        .hero h1 {
+            animation: fadeUp 0.5s ease 0.08s both;
+        }
+        .hero p {
+            animation: fadeUp 0.5s ease 0.16s both;
+        }
+
+        /* qr fade in */
+        #qrcode-container canvas {
+            animation: fadeUp 0.35s ease both;
+        }
+
+        /* ===== Input validation ===== */
+        .input-wrap .error-msg {
+            font-size: 0.78rem;
+            color: #E53E3E;
+            margin-top: 4px;
+            display: none;
+        }
+        .input-wrap.error .error-msg {
+            display: block;
+        }
+        .input-wrap.error input {
+            border-color: #E53E3E;
+            box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.12);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ========== NAVIGATION ========== -->
+    <nav class="navbar" role="navigation" aria-label="主导航">
+        <div class="container">
+            <div class="nav-brand">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
+                    <rect x="5" y="5" width="14" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+                    <rect x="8" y="8" width="8" height="8" rx="1" fill="currentColor" opacity="0.3"/>
+                </svg>
+                <span data-i18n="brand">QR Converter</span>
+            </div>
+
+            <ul class="nav-menu">
+                <li><a class="nav-link active" id="nav-home" data-i18n="nav_home">首页</a></li>
+                <li class="settings-dropdown" id="settingsDropdown">
+                    <a class="nav-link" id="settingsToggle" role="button" aria-haspopup="true" aria-expanded="false">
+                        <span data-i18n="nav_settings">设置</span>
+                        <span class="arrow">▾</span>
+                    </a>
+                    <div class="dropdown-menu" role="menu">
+                        <!-- 语言切换 -->
+                        <div class="dropdown-item" id="langToggle" role="menuitem">
+                            <span class="label" data-i18n="lang_label">语言</span>
+                            <span class="badge" id="langBadge">中文</span>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <!-- 深色模式切换 -->
+                        <div class="dropdown-item" id="darkToggle" role="menuitem">
+                            <span class="label" data-i18n="dark_label">深色模式</span>
+                            <span class="toggle-track" id="darkTrack" role="switch" aria-checked="false">
+                                <span class="toggle-thumb"></span>
+                            </span>
+                        </div>
+                    </div>
+                </li>
+                <li><a class="nav-link" id="navAbout" data-i18n="nav_about">关于我们</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- ========== MAIN ========== -->
+    <main class="main">
+        <div class="container">
+
+            <!-- Hero -->
+            <section class="hero">
+                <h1 data-i18n="title">二维码转换器</h1>
+                <p data-i18n="subtitle">输入链接或文字，实时生成可下载的二维码。</p>
+            </section>
+
+            <!-- Generator Card -->
+            <section class="generator-card" aria-label="二维码生成器">
+                <div class="input-row">
+                    <div class="input-wrap" id="inputWrap">
+                        <input type="text" id="qrInput" placeholder="请输入链接或文字..." data-i18n-placeholder="input_placeholder" autocomplete="off" aria-label="输入内容">
+                        <div class="error-msg" data-i18n="error_empty">请输入内容</div>
+                    </div>
+                    <button class="btn-primary" id="generateBtn" data-i18n="generate_btn">生成二维码</button>
+                </div>
+
+                <div class="qr-output" id="qrOutput">
+                    <div id="qrcode-container">
+                        <!-- QRCode.js 会在此渲染 canvas -->
+                        <div class="placeholder" id="qrPlaceholder">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 3h6v6H3V3zm2 2v2h2V5H5zm8-2h6v6h-6V3zm2 2v2h2V5h-2zm-2 8h6v6h-6v-6zm2 2v2h2v-2h-2zM3 17h6v6H3v-6zm2 2v2h2v-2H5z"/>
+                                <rect x="9" y="9" width="2" height="2" fill="currentColor"/>
+                                <rect x="13" y="13" width="2" height="2" fill="currentColor"/>
+                            </svg>
+                            <span data-i18n="placeholder_text">输入内容后点击生成</span>
+                        </div>
+                    </div>
+
+                    <div class="qr-actions">
+                        <button class="btn-download" id="downloadBtn" disabled data-i18n="download_btn">⬇ 下载二维码</button>
+                        <button class="btn-reset" id="resetBtn" data-i18n="reset_btn">↺ 清空</button>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- ========== ABOUT MODAL ========== -->
+    <div class="modal-overlay" id="aboutModal" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
+        <div class="modal-box">
+            <button class="close-btn" id="modalClose" aria-label="关闭关于我们">✕</button>
+            <h2 id="aboutTitle" data-i18n="about_title">关于 <span class="highlight">二维码转换器</span></h2>
+            <p data-i18n="about_desc">
+                二维码转换器是一款简单易用的在线工具，帮助您快速将文本或链接转换为高质量二维码图片。
+                我们致力于提供简洁、高效、专业的二维码生成服务，无需注册，即开即用。
+            </p>
+            <div class="modal-meta" data-i18n="about_meta">版本 1.0 · 用心制作</div>
+        </div>
+    </div>
+
+    <!-- ========== FOOTER ========== -->
+    <footer class="footer">
+        <div class="container">
+            <p data-i18n="footer">© 2026 XBAOS</p>
+        </div>
+    </footer>
+
+    <!-- ========== JAVASCRIPT ========== -->
+    <script>
+        (function() {
+            'use strict';
+
+            // ============================================================
+            //  1. 语言资源
+            // ============================================================
+            const LANG = {
+                zh: {
+                    brand: 'QR Converter',
+                    nav_home: '首页',
+                    nav_settings: '设置',
+                    nav_about: '关于我们',
+                    lang_label: '语言',
+                    dark_label: '深色模式',
+                    title: '二维码转换器',
+                    subtitle: '输入链接或文字，实时生成可下载的二维码。',
+                    input_placeholder: '请输入链接或文字...',
+                    generate_btn: '生成二维码',
+                    download_btn: '⬇ 下载二维码',
+                    reset_btn: '↺ 清空',
+                    placeholder_text: '输入内容后点击生成',
+                    error_empty: '请输入内容',
+                    about_title: '关于 二维码转换器',
+                    about_desc: '二维码转换器是一款简单易用的在线工具，帮助您快速将文本或链接转换为高质量二维码图片。我们致力于提供简洁、高效、专业的二维码生成服务，无需注册，即开即用。',
+                    about_meta: '版本 1.0 · 用心制作',
+                    footer: '© 2026 XBAOS',
+                },
+                en: {
+                    brand: 'QR Converter',
+                    nav_home: 'Home',
+                    nav_settings: 'Settings',
+                    nav_about: 'About',
+                    lang_label: 'Language',
+                    dark_label: 'Dark Mode',
+                    title: 'QR Code Converter',
+                    subtitle: 'Enter a link or text to generate a downloadable QR code in real time.',
+                    input_placeholder: 'Enter a link or text...',
+                    generate_btn: 'Generate QR',
+                    download_btn: '⬇ Download QR',
+                    reset_btn: '↺ Clear',
+                    placeholder_text: 'Enter content and generate',
+                    error_empty: 'Please enter content',
+                    about_title: 'About QR Code Converter',
+                    about_desc: 'QR Code Converter is a simple and easy-to-use online tool that helps you quickly convert text or links into high-quality QR code images. We are committed to providing simple, efficient, and professional QR code generation services. No registration, ready to use.',
+                    about_meta: 'Version 1.0 · Made with care',
+                    footer: '© 2026 XBAOS',
+                }
+            };
+
+            // ============================================================
+            //  2. State
+            // ============================================================
+            let currentLang = 'zh';
+            let isDark = false;
+            let qrCodeInstance = null;
+            let currentText = '';
+
+            // DOM refs
+            const dom = {};
+
+            function cacheDoms() {
+                dom.qrInput = document.getElementById('qrInput');
+                dom.generateBtn = document.getElementById('generateBtn');
+                dom.downloadBtn = document.getElementById('downloadBtn');
+                dom.resetBtn = document.getElementById('resetBtn');
+                dom.qrContainer = document.getElementById('qrcode-container');
+                dom.qrPlaceholder = document.getElementById('qrPlaceholder');
+                dom.inputWrap = document.getElementById('inputWrap');
+                dom.langBadge = document.getElementById('langBadge');
+                dom.darkTrack = document.getElementById('darkTrack');
+                dom.settingsToggle = document.getElementById('settingsToggle');
+                dom.settingsDropdown = document.getElementById('settingsDropdown');
+                dom.navAbout = document.getElementById('navAbout');
+                dom.aboutModal = document.getElementById('aboutModal');
+                dom.modalClose = document.getElementById('modalClose');
+                dom.navHome = document.getElementById('navHome');
+                dom.langToggle = document.getElementById('langToggle');
+                dom.darkToggle = document.getElementById('darkToggle');
+            }
+
+            // ============================================================
+            //  3. 国际化
+            // ============================================================
+            function setLanguage(lang) {
+                if (!LANG[lang]) return;
+                currentLang = lang;
+                const dict = LANG[lang];
+                // 所有带 data-i18n 的元素
+                document.querySelectorAll('[data-i18n]').forEach(el => {
+                    const key = el.getAttribute('data-i18n');
+                    if (dict[key] !== undefined) {
+                        el.textContent = dict[key];
+                    }
+                });
+                // placeholder
+                document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                    const key = el.getAttribute('data-i18n-placeholder');
+                    if (dict[key] !== undefined) {
+                        el.placeholder = dict[key];
+                    }
+                });
+                // badge
+                dom.langBadge.textContent = lang === 'zh' ? '中文' : 'English';
+                // 更新 html lang
+                document.documentElement.lang = lang;
+            }
+
+            // ============================================================
+            //  4. 深色模式
+            // ============================================================
+            function setDarkMode(on) {
+                isDark = on;
+                document.body.classList.toggle('dark-mode', on);
+                dom.darkTrack.classList.toggle('active', on);
+                dom.darkTrack.setAttribute('aria-checked', on ? 'true' : 'false');
+                // 如果二维码存在，重新生成（适配颜色）
+                if (qrCodeInstance && currentText) {
+                    generateQR(currentText);
+                }
+            }
+
+            // ============================================================
+            //  5. 二维码生成
+            // ============================================================
+            function generateQR(text) {
+                if (!text || text.trim() === '') {
+                    dom.inputWrap.classList.add('error');
+                    return false;
+                }
+                dom.inputWrap.classList.remove('error');
+                currentText = text.trim();
+
+                // 清空容器 (保留 placeholder)
+                dom.qrContainer.innerHTML = '';
+                // 隐藏 placeholder
+                if (dom.qrPlaceholder) dom.qrPlaceholder.style.display = 'none';
+
+                // 判断颜色
+                const darkColor = isDark ? '#E2E8F0' : '#1A202C';
+                const lightColor = isDark ? '#2D3748' : '#FFFFFF';
+
+                try {
+                    qrCodeInstance = new QRCode(dom.qrContainer, {
+                        text: currentText,
+                        width: 220,
+                        height: 220,
+                        colorDark: darkColor,
+                        colorLight: lightColor,
+                        correctLevel: QRCode.CorrectLevel.H,
+                    });
+                    // 启用下载按钮
+                    dom.downloadBtn.disabled = false;
+                    return true;
+                } catch (e) {
+                    console.warn('QR generation error:', e);
+                    // 回退: 显示错误
+                    dom.qrContainer.innerHTML =
+                        `<div style="color: var(--text-secondary); padding: 20px; text-align: center;">⚠️ 生成失败，请检查内容</div>`;
+                    dom.downloadBtn.disabled = true;
+                    return false;
+                }
+            }
+
+            // ============================================================
+            //  6. 下载二维码
+            // ============================================================
+            function downloadQR() {
+                const canvas = dom.qrContainer.querySelector('canvas');
+                if (!canvas) {
+                    dom.downloadBtn.disabled = true;
+                    return;
+                }
+                try {
+                    const link = document.createElement('a');
+                    link.download = 'qrcode.png';
+                    link.href = canvas.toDataURL('image/png');
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } catch (e) {
+                    alert('下载失败，请重试');
+                }
+            }
+
+            // ============================================================
+            //  7. 重置 / 清空
+            // ============================================================
+            function resetAll() {
+                dom.qrInput.value = '';
+                dom.inputWrap.classList.remove('error');
+                currentText = '';
+                dom.qrContainer.innerHTML = '';
+                // 恢复 placeholder
+                if (dom.qrPlaceholder) {
+                    dom.qrPlaceholder.style.display = 'block';
+                } else {
+                    // 重新创建 placeholder
+                    const ph = document.createElement('div');
+                    ph.className = 'placeholder';
+                    ph.id = 'qrPlaceholder';
+                    ph.innerHTML = `
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 3h6v6H3V3zm2 2v2h2V5H5zm8-2h6v6h-6V3zm2 2v2h2V5h-2zm-2 8h6v6h-6v-6zm2 2v2h2v-2h-2zM3 17h6v6H3v-6zm2 2v2h2v-2H5z"/>
+                            <rect x="9" y="9" width="2" height="2" fill="currentColor"/>
+                            <rect x="13" y="13" width="2" height="2" fill="currentColor"/>
+                        </svg>
+                        <span data-i18n="placeholder_text">输入内容后点击生成</span>
+                    `;
+                    dom.qrContainer.appendChild(ph);
+                    // 重新绑定 i18n
+                    const span = ph.querySelector('[data-i18n]');
+                    if (span) {
+                        const key = span.getAttribute('data-i18n');
+                        span.textContent = LANG[currentLang][key] || span.textContent;
+                    }
+                }
+                dom.downloadBtn.disabled = true;
+                qrCodeInstance = null;
+                // 让输入框失去焦点，避免光标残留
+                dom.qrInput.blur();
+            }
+
+            // ============================================================
+            //  8. 下拉菜单控制
+            // ============================================================
+            function toggleDropdown(open) {
+                const isOpen = dom.settingsDropdown.classList.contains('open');
+                if (open === undefined) {
+                    dom.settingsDropdown.classList.toggle('open');
+                } else if (open) {
+                    dom.settingsDropdown.classList.add('open');
+                } else {
+                    dom.settingsDropdown.classList.remove('open');
+                }
+                const expanded = dom.settingsDropdown.classList.contains('open');
+                dom.settingsToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+                // 打开下拉时，让输入框失去焦点，避免干扰
+                if (expanded) {
+                    dom.qrInput.blur();
+                }
+            }
+
+            // 点击外部关闭下拉
+            function handleClickOutside(e) {
+                if (!dom.settingsDropdown.contains(e.target)) {
+                    toggleDropdown(false);
+                }
+            }
+
+            // ============================================================
+            //  9. 关于弹窗
+            // ============================================================
+            function openAbout() {
+                dom.aboutModal.classList.add('open');
+                document.body.style.overflow = 'hidden';
+                dom.qrInput.blur(); // 打开弹窗时失去焦点
+            }
+
+            function closeAbout() {
+                dom.aboutModal.classList.remove('open');
+                document.body.style.overflow = '';
+            }
+
+            // ============================================================
+            //  10. 初始化 & 事件绑定
+            // ============================================================
+            function init() {
+                cacheDoms();
+
+                // ---- 语言 ----
+                setLanguage('zh');
+
+                // ---- 深色模式 ----
+                // 检测系统偏好
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    setDarkMode(true);
+                }
+                // 监听系统变化
+                if (window.matchMedia) {
+                    const darkMq = window.matchMedia('(prefers-color-scheme: dark)');
+                    darkMq.addEventListener('change', (e) => {
+                        if (!localStorage.getItem('darkOverride')) {
+                            setDarkMode(e.matches);
+                        }
+                    });
+                }
+
+                // ---- 事件绑定 ----
+
+                // 生成按钮
+                dom.generateBtn.addEventListener('click', function() {
+                    const val = dom.qrInput.value.trim();
+                    if (!val) {
+                        dom.inputWrap.classList.add('error');
+                        dom.qrInput.focus();
+                        return;
+                    }
+                    generateQR(val);
+                    // 生成后让输入框失去焦点，光标消失
+                    dom.qrInput.blur();
+                });
+
+                // 回车键
+                dom.qrInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        dom.generateBtn.click();
+                    }
+                });
+                dom.qrInput.addEventListener('input', function() {
+                    dom.inputWrap.classList.remove('error');
+                });
+
+                // 下载
+                dom.downloadBtn.addEventListener('click', downloadQR);
+
+                // 重置
+                dom.resetBtn.addEventListener('click', function() {
+                    resetAll();
+                    // resetAll 中已调用 blur
+                });
+
+                // 设置下拉
+                dom.settingsToggle.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    toggleDropdown();
+                });
+
+                // 语言切换
+                dom.langToggle.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const nextLang = currentLang === 'zh' ? 'en' : 'zh';
+                    setLanguage(nextLang);
+                    // 更新 placeholder 显示
+                    if (dom.qrPlaceholder) {
+                        const span = dom.qrPlaceholder.querySelector('[data-i18n]');
+                        if (span) {
+                            const key = span.getAttribute('data-i18n');
+                            span.textContent = LANG[nextLang][key] || span.textContent;
+                        }
+                    }
+                    // 如果已有二维码，保留
+                    toggleDropdown(false);
+                    dom.qrInput.blur();
+                });
+
+                // 深色模式切换
+                dom.darkToggle.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    setDarkMode(!isDark);
+                    localStorage.setItem('darkOverride', isDark ? 'true' : 'false');
+                    toggleDropdown(false);
+                    dom.qrInput.blur();
+                });
+
+                // 点击外部关闭下拉
+                document.addEventListener('click', handleClickOutside);
+
+                // 关于我们
+                dom.navAbout.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    openAbout();
+                });
+
+                // 关闭弹窗
+                dom.modalClose.addEventListener('click', closeAbout);
+                dom.aboutModal.addEventListener('click', function(e) {
+                    if (e.target === dom.aboutModal) closeAbout();
+                });
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        closeAbout();
+                        toggleDropdown(false);
+                    }
+                });
+
+                // 首页 -> 滚动到顶部
+                dom.navHome.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    // 激活样式
+                    document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+                    dom.navHome.classList.add('active');
+                    dom.qrInput.blur();
+                });
+
+                // 导航链接激活样式 (简单处理)
+                document.querySelectorAll('.nav-link:not(#settingsToggle)').forEach(link => {
+                    link.addEventListener('click', function() {
+                        document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+                        this.classList.add('active');
+                    });
+                });
+
+                // ---- 初始状态 ----
+                resetAll();
+
+                console.log('✅ QR Converter initialized');
+            }
+
+            // 等 DOM 完全加载
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+
+        })();
+    </script>
+</body>
+</html>
